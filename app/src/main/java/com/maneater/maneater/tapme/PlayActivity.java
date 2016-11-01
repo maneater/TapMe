@@ -1,18 +1,13 @@
 package com.maneater.maneater.tapme;
 
-import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.AppCompatImageView;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.maneater.maneater.tapme.core.AnimateAdapter;
 import com.maneater.maneater.tapme.core.AnimateChild;
+import com.maneater.maneater.tapme.core.AnimateDelegate;
 import com.maneater.maneater.tapme.core.AnimateLayout;
 
 import butterknife.BindView;
@@ -28,7 +23,7 @@ public class PlayActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_play);
         ButterKnife.bind(this);
-        animateLayout.setAnimateAdapter(new AnimateAdapter() {
+        animateLayout.setAnimateDelegate(new AnimateDelegate() {
             @Override
             public int getCount() {
                 return 20;
@@ -36,23 +31,23 @@ public class PlayActivity extends AppCompatActivity {
 
             @Override
             public AnimateChild<?> onCreate(LayoutInflater inflater, int index) {
-                FrameLayout frameLayout = new FrameLayout(PlayActivity.this);
-                final ImageView imageView = new AppCompatImageView(PlayActivity.this);
-                imageView.setImageResource(R.mipmap.ic_launcher);
-                frameLayout.addView(imageView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-                TextView textView = new TextView(PlayActivity.this);
-                textView.setText(Math.random() > 0.5f ? "noting" : "everything");
-                textView.setTextColor(Color.WHITE);
-                textView.setVisibility(View.GONE);
-                textView.setBackgroundColor(Color.RED);
-                frameLayout.addView(textView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                return new AnimateChild<>(frameLayout, null);
+                return new AnimateChild<>(inflater.inflate(R.layout.view_aniamte_child, null), null);
             }
 
             @Override
-            public boolean onClick(AnimateChild animateChild, int index) {
-                return false;
+            public AnimateChild<?> onBind(AnimateChild animateChild, View view, int index) {
+                TextView vTxText = (TextView) view.findViewById(R.id.vTxText);
+                vTxText.setText(String.valueOf(index));
+                return animateChild;
             }
+
+
+            @Override
+            public void onClickAnimateFinished(AnimateChild animateChild, int index) {
+
+            }
+
+
         });
     }
 }

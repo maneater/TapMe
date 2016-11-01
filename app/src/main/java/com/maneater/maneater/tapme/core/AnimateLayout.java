@@ -3,11 +3,8 @@ package com.maneater.maneater.tapme.core;
 import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.content.Context;
-import android.graphics.Color;
-import android.graphics.drawable.Animatable;
-import android.graphics.drawable.Drawable;
+import android.support.v4.util.SparseArrayCompat;
 import android.support.v4.view.ViewCompat;
-import android.support.v7.widget.AppCompatImageView;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,8 +12,6 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.maneater.maneater.tapme.R;
 
@@ -75,31 +70,23 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
 
 
     private int mPreCreateSize = 0;
-    private boolean createFinished = false;
+
+    private SparseArrayCompat<AnimateChild<?>> animateCache = new SparseArrayCompat<>();
 
     private Runnable createChildRunnable = new Runnable() {
         @Override
         public void run() {
-            if (createFinished) {
-                return;
-            }
-
             if (getWidth() > 0 && getHeight() > 0) {
                 int createSizeSeed = perSizeMin;
                 if (mPreCreateSize == perSizeMin) {
                     createSizeSeed = Math.min(createSizeSeed + 1, perSizeMax);
                 }
                 int createSize = (int) (createSizeSeed + (perSizeMax - createSizeSeed + 0.5) * Math.random());
-                int[] leftOffset = new int[createSize];
 
                 List<Range<Integer>> ranges = new ArrayList<>();
                 ranges.add(new Range<>(0, getWidth()));
                 for (int i = 0; i < createSize; i++) {
-                    View childView = addChildView(i, ranges);
-                    if (childView != null) {
-                        LayoutParams layoutParams = (LayoutParams) childView.getLayoutParams();
-                        leftOffset[i] = layoutParams.leftMargin;
-                    }
+                    addChildView(i, ranges);
                 }
                 mPreCreateSize = createSize;
                 postDelayed(this, (long) (perCreateMinDelay + Math.random() * (perCreateMaxDelay - perCreateMinDelay + 0.5f)));
@@ -109,10 +96,10 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
         }
     };
 
-    private AnimateAdapter animateAdapter = null;
+    private AnimateDelegate animateDelegate = null;
 
-    public void setAnimateAdapter(AnimateAdapter animateAdapter) {
-        this.animateAdapter = animateAdapter;
+    public void setAnimateDelegate(AnimateDelegate animateAdapter) {
+        this.animateDelegate = animateAdapter;
     }
 
     /**
@@ -120,8 +107,16 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
      * @return 可在这里返回任意View
      */
     protected View createChildView(int index) {
-        if (animateAdapter != null) {
-            return animateAdapter.onCreate(LayoutInflater.from(getContext()), index).animateView;
+        AnimateChild<?> animateChild = null;
+        if (animateDelegate != null) {
+            animateChild = animateCache.get(index);
+            if (animateChild == null) {
+                animateChild = animateDelegate.onCreate(LayoutInflater.from(getContext()), index);
+            }
+            if (animateChild != null && animateChild.animateView != null) {
+                animateDelegate.onBind(animateChild, animateChild.animateView, index);
+                return animateChild.animateView;
+            }
         }
         return null;
     }
@@ -187,7 +182,7 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
 
         @Override
         public void onAnimationEnd(Animator animation) {
-            createFinished = true;
+
         }
 
         @Override
@@ -197,7 +192,6 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
 
         @Override
         public void onAnimationRepeat(Animator animation) {
-            createFinished = true;
             if (finishWhenRepeat) {
                 animation.cancel();
                 removeView(targetView.get());
@@ -234,12 +228,6 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
             animator.cancel();
         }
 
-        if (view instanceof ImageView && ((ImageView) view).getDrawable() instanceof Animatable) {
-            Drawable drawable = ((ImageView) view).getDrawable();
-            if (drawable instanceof Animatable) {
-                ((Animatable) drawable).start();
-            }
-        }
 
         int transX = (int) ViewCompat.getTranslationX(view);
         int transY = (int) ViewCompat.getTranslationY(view);
@@ -274,9 +262,6 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
                             start();
                 }
 
-                if (childClickListener != null) {
-                    childClickListener.onClick(view);
-                }
             }
 
             @Override
@@ -298,16 +283,6 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
             ChildAnimatorListener listener = (ChildAnimatorListener) view.getTag(ANIMATOR_LISTENER_ID);
             listener.setFinishWhenRepeat(true);
         }
-    }
-
-    private ChildClickListener childClickListener = null;
-
-    public void setChildClickListener(ChildClickListener childClickListener) {
-        this.childClickListener = childClickListener;
-    }
-
-    public interface ChildClickListener {
-        void onClick(View view);
     }
 
     @Override
