@@ -100,7 +100,7 @@ public class ColorView extends View {
                     path.moveTo(x, y);
                 }
             }
-
+            path.close();
         } else if (mSharp == Sharp.Trapezoid) {
 
 
