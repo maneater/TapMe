@@ -1,5 +1,7 @@
 package com.maneater.maneater.tapme;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
@@ -15,6 +17,12 @@ import butterknife.ButterKnife;
 
 public class PlayActivity extends AppCompatActivity {
 
+    public static void launch(Activity activity, Class<? extends AnimateDelegate> target) {
+        Intent intent = new Intent(activity, PlayActivity.class);
+        intent.putExtra("target", target);
+        activity.startActivity(intent);
+    }
+
     @BindView(R.id.animateLayout)
     AnimateLayout animateLayout;
 
@@ -23,31 +31,12 @@ public class PlayActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_play);
         ButterKnife.bind(this);
-        animateLayout.setAnimateDelegate(new AnimateDelegate() {
-            @Override
-            public int getCount() {
-                return 20;
-            }
-
-            @Override
-            public AnimateChild<?> onCreate(LayoutInflater inflater, int index) {
-                return new AnimateChild<>(inflater.inflate(R.layout.view_aniamte_child, null), null);
-            }
-
-            @Override
-            public AnimateChild<?> onBind(AnimateChild animateChild, View view, int index) {
-                TextView vTxText = (TextView) view.findViewById(R.id.vTxText);
-                vTxText.setText(String.valueOf(index));
-                return animateChild;
-            }
-
-
-            @Override
-            public void onClickAnimateFinished(AnimateChild animateChild, int index) {
-
-            }
-
-
-        });
+        try {
+            Class clz = (Class) getIntent().getSerializableExtra("target");
+            AnimateDelegate delegate = (AnimateDelegate) clz.newInstance();
+            animateLayout.setAnimateDelegate(delegate);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

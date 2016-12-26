@@ -71,11 +71,17 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
 
     private int mPreCreateSize = 0;
 
+    //TODO
     private SparseArrayCompat<AnimateChild<?>> animateCache = new SparseArrayCompat<>();
+
 
     private Runnable createChildRunnable = new Runnable() {
         @Override
         public void run() {
+            if (mDelegateNeedCount <= 0 || mHasChildDown) {
+                return;
+            }
+
             if (getWidth() > 0 && getHeight() > 0) {
                 int createSizeSeed = perSizeMin;
                 if (mPreCreateSize == perSizeMin) {
@@ -97,9 +103,16 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
     };
 
     private AnimateDelegate animateDelegate = null;
+    private int mDelegateNeedCount = 0;
+    private int mNowAnimateIndex = 0;
+    /*是否有任意子控件触底，触底之后不再创建新的控件**/
+    private boolean mHasChildDown = false;
 
     public void setAnimateDelegate(AnimateDelegate animateAdapter) {
         this.animateDelegate = animateAdapter;
+        this.mDelegateNeedCount = animateDelegate != null ? animateDelegate.getCount() : 0;
+        this.mNowAnimateIndex = 0;
+        //TODO remove all
     }
 
     /**
@@ -110,11 +123,12 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
         AnimateChild<?> animateChild = null;
         if (animateDelegate != null) {
             animateChild = animateCache.get(index);
+
             if (animateChild == null) {
-                animateChild = animateDelegate.onCreate(LayoutInflater.from(getContext()), index);
+                animateChild = animateDelegate.onCreate(LayoutInflater.from(getContext()), index, mNowAnimateIndex);
             }
             if (animateChild != null && animateChild.animateView != null) {
-                animateDelegate.onBind(animateChild, animateChild.animateView, index);
+                animateDelegate.onBind(animateChild, animateChild.animateView, index, mNowAnimateIndex);
                 return animateChild.animateView;
             }
         }
@@ -138,6 +152,8 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
         layoutParams.leftMargin = Helper.findRange(getWidth(), measuredWidth, sourceRanges).getLower();
         layoutParams.topMargin = -measuredHeight;
         addView(childView, layoutParams);
+        mNowAnimateIndex++;
+        mNowAnimateIndex = mNowAnimateIndex % mDelegateNeedCount;
         childView.setRotation((float) (Math.random() * 45) * (Math.random() > 0.5f ? 1 : -1));
 
         final ValueAnimator animator = ValueAnimator.ofFloat((float) (getHeight() + measuredHeight * 1.5));
@@ -192,6 +208,7 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
 
         @Override
         public void onAnimationRepeat(Animator animation) {
+            mHasChildDown = true;
             if (finishWhenRepeat) {
                 animation.cancel();
                 removeView(targetView.get());
@@ -256,7 +273,7 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
             public void onAnimationEnd(Animator animation) {
                 if (view instanceof ViewGroup) {
                     ViewGroup viewGroup = (ViewGroup) view;
-                    viewGroup.getChildAt(0).setVisibility(INVISIBLE);
+//                    viewGroup.getChildAt(0).setVisibility(INVISIBLE);
                     viewGroup.getChildAt(1).setVisibility(VISIBLE);
                     view.animate().rotationY(90 * 4).setInterpolator(new AccelerateDecelerateInterpolator()).setDuration(200).
                             start();

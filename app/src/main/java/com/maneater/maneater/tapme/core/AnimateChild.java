@@ -11,4 +11,12 @@ public class AnimateChild<T> {
         this.animateView = animateView;
         this.animateData = animateData;
     }
+
+    public View getAnimateView() {
+        return animateView;
+    }
+
+    public T getAnimateData() {
+        return animateData;
+    }
 }

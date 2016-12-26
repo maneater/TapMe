@@ -12,9 +12,9 @@ public abstract class AnimateDelegate<AD extends AnimateChild<?>> {
 
     public abstract int getCount();
 
-    public abstract AD onCreate(LayoutInflater inflater, int index);
+    public abstract AD onCreate(LayoutInflater inflater, int index, int globalIndex);
 
-    public abstract AD onBind(AD ad, View view, int index);
+    public abstract AD onBind(AD ad, View view, int index, int globalIndex);
 
     /**
      * @param ad
@@ -25,7 +25,7 @@ public abstract class AnimateDelegate<AD extends AnimateChild<?>> {
         return false;
     }
 
-    public abstract void onClickAnimateFinished(AD ad, int index);
+    public abstract void onClickAnimateFinished(AD ad, int index, int globalIndex);
 
 
 }
