@@ -70,10 +70,7 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
 
 
     private int mPreCreateSize = 0;
-
-    //TODO
     private ArrayList<AnimateChild<?>> animateCache = new ArrayList<>();
-
 
     private Runnable createChildRunnable = new Runnable() {
         @Override
@@ -132,6 +129,7 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
             }
             if (animateChild != null && animateChild.animateView != null) {
                 animateDelegate.onBind(animateChild, animateChild.animateView, index, mNowAnimateIndex);
+                animateChild.position = mNowAnimateIndex;
                 return animateChild;
             }
         }
@@ -244,7 +242,6 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
 
         finishChildAnimator();
 
-        removeCallbacks(createChildRunnable);
         Animator animator = (Animator) view.getTag(ANIMATOR_ID);
         if (animator != null) {
             animator.cancel();
