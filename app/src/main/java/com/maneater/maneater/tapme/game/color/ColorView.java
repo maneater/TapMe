@@ -12,7 +12,7 @@ public class ColorView extends View {
     private Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     {
-        mPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+        mPaint.setStyle(Paint.Style.FILL);
     }
 
     private Path mPath = null;
@@ -30,7 +30,7 @@ public class ColorView extends View {
     }
 
     private int mColor = 0;
-    private Sharp mSharp = Sharp.Circle;
+    private Sharp mSharp = Sharp.Star;
 
     public void setColor(int mColor) {
         this.mColor = mColor;
@@ -40,6 +40,7 @@ public class ColorView extends View {
 
     public void setSharp(Sharp mSharp) {
         this.mSharp = mSharp;
+        createPathIfNeed(getWidth(), getHeight());
         invalidate();
     }
 
@@ -72,14 +73,26 @@ public class ColorView extends View {
         }
     }
 
-    private void drawTrapezoid(Canvas canvas) {
+    private void drawTriangle(Canvas canvas) {
+        drawPath(canvas);
+    }
 
+    private void drawTrapezoid(Canvas canvas) {
+        drawPath(canvas);
     }
 
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        createPathIfNeed(w, h);
+    }
+
+    private void createPathIfNeed(int w, int h) {
+        if (w == 0 || h == 0) {
+            return;
+        }
+
         if (mSharp == Sharp.Triangle) {
             Path path = preparePath();
             path.moveTo(w / 2, 0);
@@ -100,10 +113,14 @@ public class ColorView extends View {
                     path.moveTo(x, y);
                 }
             }
-            path.close();
+//            path.close();
         } else if (mSharp == Sharp.Trapezoid) {
-
-
+            Path path = preparePath();
+            path.moveTo(0, h);
+            path.lineTo(w, h);
+            path.lineTo(w * 0.8f, 0);
+            path.lineTo(w * 0.2f, 0);
+            path.close();
         } else {
             mPath = null;
         }
@@ -142,8 +159,10 @@ public class ColorView extends View {
         return mPath;
     }
 
-    private void drawTriangle(Canvas canvas) {
-        canvas.drawPath(mPath, mPaint);
+    private void drawPath(Canvas canvas) {
+        if (mPath != null) {
+            canvas.drawPath(mPath, mPaint);
+        }
     }
 
 
@@ -159,7 +178,7 @@ public class ColorView extends View {
     }
 
     private void drawStar(Canvas canvas) {
-        canvas.drawPath(mPath, mPaint);
+        drawPath(canvas);
     }
 
 

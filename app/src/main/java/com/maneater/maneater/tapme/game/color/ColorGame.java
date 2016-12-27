@@ -12,7 +12,7 @@ import com.maneater.maneater.tapme.core.AnimateDelegate;
 public class ColorGame extends AnimateDelegate<AnimateChild<Integer>> {
 
     private String[] colorName = new String[]{"赤", "橙", "黄", "绿", "青", "蓝", "紫"};
-    private int[] colorValue = new int[]{0xffff0000, 0xffff8000, 0xffff0000, 0xff00ff00, 0xff00ffff, 0xff0000ff, 0xff8000ff};
+    private int[] colorValue = new int[]{0xffff0000, 0xffff8000, 0xffffff00, 0xff00ff00, 0xff00ffff, 0xff0000ff, 0xff8000ff};
 
     public ColorGame() {
     }
@@ -38,6 +38,7 @@ public class ColorGame extends AnimateDelegate<AnimateChild<Integer>> {
         imageView.setColor(colorValue[globalIndex]);
         TextView textView = (TextView) view.findViewById(R.id.vTxText);
         textView.setText(colorName[globalIndex]);
+        imageView.setSharp(ColorView.Sharp.values()[globalIndex % ColorView.Sharp.values().length]);
         return animateChild;
     }
 }

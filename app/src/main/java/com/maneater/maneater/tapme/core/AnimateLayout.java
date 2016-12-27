@@ -3,9 +3,9 @@ package com.maneater.maneater.tapme.core;
 import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.content.Context;
-import android.support.v4.util.SparseArrayCompat;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -72,13 +72,13 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
     private int mPreCreateSize = 0;
 
     //TODO
-    private SparseArrayCompat<AnimateChild<?>> animateCache = new SparseArrayCompat<>();
+    private ArrayList<AnimateChild<?>> animateCache = new ArrayList<>();
 
 
     private Runnable createChildRunnable = new Runnable() {
         @Override
         public void run() {
-            if (mDelegateNeedCount <= 0 || mHasChildDown) {
+            if (mDelegateNeedCount <= 0) {
                 return;
             }
 
@@ -119,27 +119,31 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
      * @param index
      * @return 可在这里返回任意View
      */
-    protected View createChildView(int index) {
+    protected AnimateChild<?> createChildView(int index) {
         AnimateChild<?> animateChild = null;
         if (animateDelegate != null) {
-            animateChild = animateCache.get(index);
+            if (animateCache != null && animateCache.size() > 0) {
+                Log.e("Game", "create from cache");
+                animateChild = animateCache.remove(0);
+            }
 
             if (animateChild == null) {
                 animateChild = animateDelegate.onCreate(LayoutInflater.from(getContext()), index, mNowAnimateIndex);
             }
             if (animateChild != null && animateChild.animateView != null) {
                 animateDelegate.onBind(animateChild, animateChild.animateView, index, mNowAnimateIndex);
-                return animateChild.animateView;
+                return animateChild;
             }
         }
         return null;
     }
 
     private View addChildView(int index, List<Range<Integer>> sourceRanges) {
-        final View childView = createChildView(index);
-        if (childView == null) {
+        final AnimateChild<?> animateChildView = createChildView(index);
+        if (animateChildView == null || animateChildView.animateView == null) {
             return null;
         }
+        final View childView = animateChildView.animateView;
 
         LayoutParams layoutParams = generateDefaultLayoutParams();
         layoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
@@ -157,12 +161,10 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
         childView.setRotation((float) (Math.random() * 45) * (Math.random() > 0.5f ? 1 : -1));
 
         final ValueAnimator animator = ValueAnimator.ofFloat((float) (getHeight() + measuredHeight * 1.5));
-        final ChildAnimatorListener childAnimatorListener = new ChildAnimatorListener(childView);
+        final ChildAnimatorListener childAnimatorListener = new ChildAnimatorListener(animateChildView);
         childView.setTag(ANIMATOR_ID, animator);
         childView.setTag(ANIMATOR_LISTENER_ID, childAnimatorListener);
         animator.setInterpolator(new LinearInterpolator());
-        animator.setRepeatMode(ValueAnimator.RESTART);
-        animator.setRepeatCount(ValueAnimator.INFINITE);
         animator.setDuration(perChildFallDuration);
         animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
@@ -179,17 +181,12 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
 
     private class ChildAnimatorListener implements Animator.AnimatorListener {
 
-        private WeakReference<View> targetView = null;
+        private WeakReference<AnimateChild<?>> targetView = null;
 
-        public ChildAnimatorListener(View targetView) {
-            this.targetView = new WeakReference<View>(targetView);
+        public ChildAnimatorListener(AnimateChild<?> targetView) {
+            this.targetView = new WeakReference<AnimateChild<?>>(targetView);
         }
 
-        private boolean finishWhenRepeat = false;
-
-        public void setFinishWhenRepeat(boolean finishWhenRepeat) {
-            this.finishWhenRepeat = finishWhenRepeat;
-        }
 
         @Override
         public void onAnimationStart(Animator animation) {
@@ -198,21 +195,29 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
 
         @Override
         public void onAnimationEnd(Animator animation) {
-
+            if (targetView == null) {
+                return;
+            }
+            AnimateChild<?> view = targetView.get();
+            if (view != null && view.animateView != null) {
+                removeView(targetView.get().animateView);
+                animateCache.add(view);
+                targetView.clear();
+            }
         }
 
         @Override
         public void onAnimationCancel(Animator animation) {
+            if (targetView != null) {
+                targetView.clear();
+                targetView = null;
+            }
 
         }
 
         @Override
         public void onAnimationRepeat(Animator animation) {
             mHasChildDown = true;
-            if (finishWhenRepeat) {
-                animation.cancel();
-                removeView(targetView.get());
-            }
         }
     }
 
@@ -298,7 +303,6 @@ public class AnimateLayout extends FrameLayout implements View.OnClickListener {
         for (int i = 0; i < childSize; i++) {
             View view = getChildAt(i);
             ChildAnimatorListener listener = (ChildAnimatorListener) view.getTag(ANIMATOR_LISTENER_ID);
-            listener.setFinishWhenRepeat(true);
         }
     }
 
